@@ -1,0 +1,43 @@
+CC = gcc
+CXX = g++
+TARGET = test
+INSTALLDIR = ~/work/
+COMMON_PATH := /home/shengkaishan/
+
+INCLUDES := -I./
+INCLUDES += -I$(COMMON_PATH)/muduo
+INCLUDES += -I$(COMMON_PATH)/contrib/boost_1_65_0
+
+LIBS := 
+LIBS += -L$(COMMON_PATH)/out/public/lib -lmuduo_base -lmuduo_net
+LIBS += -pthread
+
+CPPFLAGS := -g -O0
+CPPFLAGS += -std=c++11
+
+#add macro
+#CPPFLAGS += -D __linux__
+##
+
+SRCDIRS := .
+SRCEXTS := .cpp .cc
+CPP_SOURCES = $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCEXTS))))
+CPP_OBJS = $(patsubst %.cpp, %.o, $(CPP_SOURCES))
+
+all: $(TARGET)
+$(TARGET): TimerQueue_unittest.cc
+#$(TARGET): $(CPP_SOURCES)
+	$(CXX) $(CPPFLAGS) $^ -o $(TARGET) $(INCLUDES) $(LIBS)
+
+install:
+	mkdir -p $(INSTALLDIR)
+	cp -f $(TARGET) $(INSTALLDIR)
+ifneq ($(wildcard *.conf), )
+	cp -f *.conf $(INSTALLDIR)
+endif
+
+clean:
+#	rm -f $(CPP_OBJS) $(C_OBJS)
+	rm -f $(TARGET)
+
+rebuild: clean all

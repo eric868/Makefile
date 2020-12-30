@@ -1,0 +1,86 @@
+##### @version $Id: Makefile 1084 2015-10-27  Eric $  #####
+#######Makefile Begin#######################
+
+CC = g++
+
+#ifeq ($(MODULE_TYPE), dynamic_lib)
+CPPFLAGS += -fPIC
+#endif
+
+#ifeq ($(BUILD_TYPE), Debug)
+CPPFLAGS += -g
+#endif
+
+SRCEXTS := .cpp
+SOURCES := $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCEXTS))))
+OBJS := $(patsubst %.cpp,./obj/%.o,$(notdir $(SOURCES)))
+SRCEXTS := .cc
+SOURCES := $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCEXTS))))
+OBJS_CC := $(patsubst %.cc,./obj/%.o,$(notdir $(SOURCES)))
+OBJS_ALL = $(OBJS) $(OBJS_CC)
+
+.PHONY : all install clean
+all : $(TARGET) 
+
+$(OBJS) :
+./obj/%.o : %.cpp
+	@mkdir -p $(dir $@)
+	@echo "==================================================================="
+	@echo "Compiling $<"
+	$(CC) -c $< -o $@ $(CPPFLAGS) $(INCLUDES)
+	
+$(OBJS_CC) :
+./obj/%.o : %.cc
+	@mkdir -p $(dir $@)
+	@echo "==================================================================="
+	@echo "Compiling $<"
+	$(CC) -c $< -o $@ $(CPPFLAGS) $(INCLUDES)
+
+$(TARGET) : $(OBJS_ALL)
+	mkdir -p ./bin/$(BUILD_TYPE)
+
+ifeq ($(MODULE_TYPE), dynamic_lib)
+	$(CC) -shared -o ./bin/$(BUILD_TYPE)/lib$(TARGET).so $(OBJS_ALL) $(LIBS)
+endif
+
+ifeq ($(MODULE_TYPE), static_lib)
+	ar rcs ./bin/$(BUILD_TYPE)/lib$(TARGET).a $(OBJS_ALL)
+endif
+
+ifeq ($(MODULE_TYPE), executable)
+	$(CC) -o ./bin/$(BUILD_TYPE)/$(TARGET) $(OBJS_ALL) $(LIBS)
+endif
+
+install : all
+	@mkdir -p $(INSTALL_DIR)/demo/bin
+	@mkdir -p $(INSTALL_DIR)/demo/lib
+	@mkdir -p $(INSTALL_DIR)/demo/etc
+
+ifeq ($(MODULE_TYPE), dynamic_lib)
+	cp -f ./bin/$(BUILD_TYPE)/lib$(TARGET).so $(INSTALL_DIR)/demo/lib
+endif
+
+ifeq ($(MODULE_TYPE), static_lib)
+	cp -f ./bin/$(BUILD_TYPE)/lib$(TARGET).a $(INSTALL_DIR)/demo/lib 
+endif
+
+ifeq ($(MODULE_TYPE), executable)
+	chmod a+x $(INSTALL_DIR)/demo/lib/*.so
+#	chmod a+x $(INSTALL_DIR)/demo/lib/*.a
+	cp -f ./bin/$(BUILD_TYPE)/$(TARGET) $(INSTALL_DIR)/demo/bin
+	ifneq  ($(wildcard APPSTART*.sh), )
+		cp -f APPSTART*.sh $(INSTALL_DIR)/demo/bin
+		chmod a+x $(INSTALL_DIR)/demo/bin/APPSTART*.sh
+	endif
+	ifneq  ($(wildcard *.conf), )
+		cp -f *.conf $(INSTALL_DIR)/demo/etc
+	endif
+endif
+
+clean :
+	@echo "cleaning ..."
+	rm -f $(OBJS_ALL)
+	rm -f ./bin/$(BUILD_TYPE)/*
+
+###############################################################################
+
